@@ -24,7 +24,7 @@ export default function Home() {
   async function onSubmit(data: z.infer<typeof vehicleNumberSchema>) {
     setLoading(true);
     try {
-      setLocation(`/service-history/${encodeURIComponent(data.number)}`);
+      setLocation(`/service-history/${encodeURIComponent(data.number.toUpperCase())}`);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -60,7 +60,12 @@ export default function Home() {
                           <Input 
                             placeholder="Enter vehicle number" 
                             {...field} 
-                            className="text-lg"
+                            className="text-lg uppercase"
+                            onChange={(e) => {
+                              const value = e.target.value.toUpperCase();
+                              e.target.value = value;
+                              field.onChange(value);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />

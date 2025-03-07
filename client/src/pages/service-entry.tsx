@@ -31,7 +31,7 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
   });
 
   const spareParts = form.watch("spareParts");
-  const serviceCharge = form.watch("serviceCharge");
+  const serviceCharge = form.watch("serviceCharge") || 0;
 
   const addSparePart = () => {
     const currentParts = form.getValues("spareParts");
@@ -44,7 +44,7 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
   };
 
   const calculateTotal = () => {
-    const partsTotal = spareParts.reduce((sum, part) => sum + part.cost, 0);
+    const partsTotal = spareParts.reduce((sum, part) => sum + (Number(part.cost) || 0), 0);
     return partsTotal + serviceCharge;
   };
 
@@ -52,11 +52,14 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
     setLoading(true);
     try {
       const servicesRef = ref(database, `services/${vehicleNumber}`);
-      const newServiceRef = push(servicesRef);
 
       const newData = {
         ...data,
-        id: newServiceRef.key,
+        spareParts: data.spareParts.map(part => ({
+          ...part,
+          cost: Number(part.cost) || 0
+        })),
+        serviceCharge: Number(data.serviceCharge) || 0,
         totalCost: calculateTotal()
       };
 
@@ -67,13 +70,13 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
         description: "Service record saved successfully"
       });
 
-      setLocation(`/service-history/${vehicleNumber}`);
+      setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`);
     } catch (error) {
       console.error("Error saving service:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save service record"
+        description: "Failed to save service record. Please check your connection and try again."
       });
     } finally {
       setLoading(false);
@@ -85,7 +88,7 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
       <div className="max-w-2xl mx-auto space-y-4">
         <Button
           variant="ghost"
-          onClick={() => setLocation(`/service-history/${vehicleNumber}`)}
+          onClick={() => setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`)}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -146,9 +149,14 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
                             <FormControl>
                               <Input
                                 type="number"
+                                min="0"
+                                step="any"
                                 placeholder="Cost"
                                 {...field}
-                                onChange={e => field.onChange(Number(e.target.value))}
+                                onChange={e => {
+                                  const value = e.target.value;
+                                  field.onChange(value === "" ? "" : Number(value));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -176,8 +184,13 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
                       <FormControl>
                         <Input
                           type="number"
+                          min="0"
+                          step="any"
                           {...field}
-                          onChange={e => field.onChange(Number(e.target.value))}
+                          onChange={e => {
+                            const value = e.target.value;
+                            field.onChange(value === "" ? "" : Number(value));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
