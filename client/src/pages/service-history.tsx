@@ -26,19 +26,37 @@ export default function ServiceHistory({ params }: { params: { number: string } 
       try {
         const servicesRef = ref(database, `services/${vehicleNumber}`);
         const snapshot = await get(servicesRef);
+
         if (snapshot.exists()) {
           const data = snapshot.val();
           const servicesArray = Object.values(data) as ServiceEntry[];
-          setServices(servicesArray.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+          // Sort by date in descending order
+          setServices(servicesArray.sort((a, b) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          ));
         } else {
-          setLocation(`/service-entry/${vehicleNumber}`);
+          // If no records exist, redirect to create new service entry
+          toast({
+            title: "No Records Found",
+            description: "No service records found for this vehicle. Create a new service record.",
+            duration: 3000
+          });
+          setLocation(`/service-entry/${encodeURIComponent(vehicleNumber)}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching services:", error);
+
+        let errorMessage = "Failed to fetch service records. ";
+        if (error.code === "PERMISSION_DENIED") {
+          errorMessage += "Please check if you have read permissions.";
+        } else {
+          errorMessage += "Please check your connection and try again.";
+        }
+
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to fetch service records"
+          description: errorMessage
         });
       } finally {
         setLoading(false);

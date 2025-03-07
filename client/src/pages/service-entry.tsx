@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import crypto from 'crypto';
 
 export default function ServiceEntryPage({ params }: { params: { number: string } }) {
   const [, setLocation] = useLocation();
@@ -53,16 +54,21 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
     try {
       const servicesRef = ref(database, `services/${vehicleNumber}`);
 
+      // Format the data
       const newData = {
         ...data,
+        id: crypto.randomUUID(), // Generate a unique ID
+        date: new Date(data.date).toISOString(),
         spareParts: data.spareParts.map(part => ({
-          ...part,
+          name: part.name.trim(),
           cost: Number(part.cost) || 0
         })),
         serviceCharge: Number(data.serviceCharge) || 0,
-        totalCost: calculateTotal()
+        totalCost: calculateTotal(),
+        createdAt: new Date().toISOString()
       };
 
+      // Push to Firebase
       await push(servicesRef, newData);
 
       toast({
@@ -71,12 +77,21 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
       });
 
       setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving service:", error);
+
+      // Show specific error message based on error code
+      let errorMessage = "Failed to save service record. ";
+      if (error.code === "PERMISSION_DENIED") {
+        errorMessage += "Please check if you have write permissions.";
+      } else {
+        errorMessage += "Please check your connection and try again.";
+      }
+
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save service record. Please check your connection and try again."
+        description: errorMessage
       });
     } finally {
       setLoading(false);

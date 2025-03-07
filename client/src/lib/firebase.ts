@@ -9,5 +9,14 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const database = getDatabase(app);
+
+// Initialize Realtime Database
+const database = getDatabase(app);
+
+// Export initialized database instance
+export { database };
+
+// Log initialization status (for debugging)
+console.log("Firebase initialized with project:", firebaseConfig.projectId);
