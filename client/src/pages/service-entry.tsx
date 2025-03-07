@@ -11,14 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
-import crypto from 'crypto';
 
 export default function ServiceEntryPage({ params }: { params: { number: string } }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const vehicleNumber = decodeURIComponent(params.number);
+  const vehicleNumber = decodeURIComponent(params.number).toUpperCase();
 
+  // Initialize form with default values
   const form = useForm<ServiceEntry>({
     resolver: zodResolver(serviceEntrySchema),
     defaultValues: {
@@ -46,30 +46,31 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
 
   const calculateTotal = () => {
     const partsTotal = spareParts.reduce((sum, part) => sum + (Number(part.cost) || 0), 0);
-    return partsTotal + serviceCharge;
+    return partsTotal + (Number(serviceCharge) || 0);
   };
 
   async function onSubmit(data: ServiceEntry) {
     setLoading(true);
     try {
+      console.log("Attempting to save service record:", { vehicleNumber, data });
       const servicesRef = ref(database, `services/${vehicleNumber}`);
 
       // Format the data
       const newData = {
         ...data,
-        id: crypto.randomUUID(), // Generate a unique ID
+        id: Date.now().toString(),
         date: new Date(data.date).toISOString(),
         spareParts: data.spareParts.map(part => ({
           name: part.name.trim(),
           cost: Number(part.cost) || 0
         })),
         serviceCharge: Number(data.serviceCharge) || 0,
-        totalCost: calculateTotal(),
-        createdAt: new Date().toISOString()
+        totalCost: calculateTotal()
       };
 
       // Push to Firebase
       await push(servicesRef, newData);
+      console.log("Service record saved successfully");
 
       toast({
         title: "Success",
@@ -79,6 +80,8 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
       setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`);
     } catch (error: any) {
       console.error("Error saving service:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
 
       // Show specific error message based on error code
       let errorMessage = "Failed to save service record. ";
@@ -165,9 +168,10 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
                               <Input
                                 type="number"
                                 min="0"
-                                step="any"
+                                step="1"
                                 placeholder="Cost"
                                 {...field}
+                                value={field.value || ""}
                                 onChange={e => {
                                   const value = e.target.value;
                                   field.onChange(value === "" ? "" : Number(value));
@@ -200,8 +204,10 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
                         <Input
                           type="number"
                           min="0"
-                          step="any"
+                          step="1"
+                          placeholder="Enter service charge"
                           {...field}
+                          value={field.value || ""}
                           onChange={e => {
                             const value = e.target.value;
                             field.onChange(value === "" ? "" : Number(value));
