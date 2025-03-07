@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ref, push } from "firebase/database";
+import { ref, push, get } from "firebase/database";
 import { database } from "@/lib/firebase";
 import { ServiceEntry, serviceEntrySchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -16,7 +16,22 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [isNewVehicle, setIsNewVehicle] = useState(true);
   const vehicleNumber = decodeURIComponent(params.number).toUpperCase();
+
+  // Check if vehicle has any existing records
+  useEffect(() => {
+    async function checkExistingRecords() {
+      try {
+        const servicesRef = ref(database, `services/${vehicleNumber}`);
+        const snapshot = await get(servicesRef);
+        setIsNewVehicle(!snapshot.exists());
+      } catch (error) {
+        console.error("Error checking existing records:", error);
+      }
+    }
+    checkExistingRecords();
+  }, [vehicleNumber]);
 
   // Initialize form with default values
   const form = useForm<ServiceEntry>({
@@ -25,6 +40,7 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
       id: "",
       vehicleNumber,
       date: new Date().toISOString().split('T')[0],
+      kilometerReading: 0,
       spareParts: [],
       serviceCharge: 0,
       totalCost: 0
@@ -50,7 +66,11 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
   };
 
   const handleBack = () => {
-    setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`);
+    if (isNewVehicle) {
+      setLocation("/"); // Go to home page for new vehicles
+    } else {
+      setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`); // Go to history for existing vehicles
+    }
   };
 
   async function onSubmit(data: ServiceEntry) {
@@ -138,6 +158,31 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
                       <FormLabel>Service Date</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="kilometerReading"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Kilometer Reading</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="Enter current kilometer reading"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={e => {
+                            const value = e.target.value;
+                            field.onChange(value === "" ? "" : Number(value));
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

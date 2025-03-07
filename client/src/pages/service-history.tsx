@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, ArrowLeft, Plus, IndianRupee, Settings, Wrench } from "lucide-react";
+import { CalendarDays, ArrowLeft, Plus, IndianRupee, Settings, Wrench, CarFront } from "lucide-react";
 
 type GroupedServices = {
   [key: string]: ServiceEntry[];
@@ -175,6 +175,11 @@ export default function ServiceHistory({ params }: { params: { number: string } 
                                 <Wrench className="w-4 h-4 mr-2" />
                                 {service.spareParts.length} parts replaced
                               </div>
+                            </div>
+
+                            <div className="flex items-center text-sm text-muted-foreground mb-4">
+                              <CarFront className="w-4 h-4 mr-2" />
+                              Kilometer Reading: {service.kilometerReading.toLocaleString()} km
                             </div>
 
                             <div className="space-y-3">

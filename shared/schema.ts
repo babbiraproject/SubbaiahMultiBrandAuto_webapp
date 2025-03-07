@@ -10,6 +10,7 @@ export const serviceEntrySchema = z.object({
   id: z.string(),
   vehicleNumber: z.string(),
   date: z.string(),
+  kilometerReading: z.number().min(0, "Kilometer reading must be positive"),
   spareParts: z.array(z.object({
     name: z.string().min(1, "Part name is required"),
     cost: z.number().min(0, "Cost must be positive")
