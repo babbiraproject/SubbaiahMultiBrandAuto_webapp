@@ -5,6 +5,7 @@ import { database } from "@/lib/firebase";
 import { ServiceEntry } from "@shared/schema";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { ArrowLeft } from "lucide-react";
 import {
   BarChart,
@@ -21,16 +22,21 @@ type AnalyticsData = {
   commonParts: { name: string; count: number }[];
   averageServiceCost: number;
   totalServices: number;
+  todayServices: ServiceEntry[];
+  selectedDateServices: ServiceEntry[];
 };
 
 export default function Analytics() {
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     monthlyRevenue: [],
     commonParts: [],
     averageServiceCost: 0,
-    totalServices: 0
+    totalServices: 0,
+    todayServices: [],
+    selectedDateServices: []
   });
 
   useEffect(() => {
@@ -38,16 +44,34 @@ export default function Analytics() {
       try {
         const servicesRef = ref(database, "services");
         const snapshot = await get(servicesRef);
-        
+
         if (snapshot.exists()) {
           const allServices: ServiceEntry[] = [];
           const data = snapshot.val();
-          
+
           // Flatten the data structure
           Object.values(data).forEach((vehicleServices: any) => {
             Object.values(vehicleServices).forEach((service: ServiceEntry) => {
               allServices.push(service);
             });
+          });
+
+          // Get today's services
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayServices = allServices.filter(service => {
+            const serviceDate = new Date(service.date);
+            serviceDate.setHours(0, 0, 0, 0);
+            return serviceDate.getTime() === today.getTime();
+          });
+
+          // Get selected date services
+          const selectedDateStart = new Date(selectedDate);
+          selectedDateStart.setHours(0, 0, 0, 0);
+          const selectedDateServices = allServices.filter(service => {
+            const serviceDate = new Date(service.date);
+            serviceDate.setHours(0, 0, 0, 0);
+            return serviceDate.getTime() === selectedDateStart.getTime();
           });
 
           // Calculate monthly revenue
@@ -85,7 +109,9 @@ export default function Analytics() {
             monthlyRevenue,
             commonParts,
             averageServiceCost,
-            totalServices: allServices.length
+            totalServices: allServices.length,
+            todayServices,
+            selectedDateServices
           });
         }
       } catch (error) {
@@ -96,7 +122,11 @@ export default function Analytics() {
     }
 
     fetchAnalytics();
-  }, []);
+  }, [selectedDate]);
+
+  const calculateDailyRevenue = (services: ServiceEntry[]) => {
+    return services.reduce((sum, service) => sum + service.totalCost, 0);
+  };
 
   if (loading) {
     return (
@@ -127,35 +157,63 @@ export default function Analytics() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <h2 className="text-xl font-semibold">Service Summary</h2>
+              <h2 className="text-xl font-semibold">Today's Summary</h2>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Services</p>
-                  <p className="text-2xl font-bold">{analyticsData.totalServices}</p>
+                  <p className="text-sm text-muted-foreground">Vehicles Serviced Today</p>
+                  <p className="text-2xl font-bold">{analyticsData.todayServices.length}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Average Service Cost</p>
-                  <p className="text-2xl font-bold">₹{analyticsData.averageServiceCost.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">Today's Revenue</p>
+                  <p className="text-2xl font-bold">₹{calculateDailyRevenue(analyticsData.todayServices)}</p>
                 </div>
+                {analyticsData.todayServices.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Today's Vehicles:</p>
+                    <ul className="space-y-2">
+                      {analyticsData.todayServices.map((service) => (
+                        <li key={service.id} className="text-sm">
+                          {service.vehicleNumber} - ₹{service.totalCost}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <h2 className="text-xl font-semibold">Most Common Parts</h2>
+              <h2 className="text-xl font-semibold">Date Analytics</h2>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2">
-                {analyticsData.commonParts.map((part, index) => (
-                  <li key={part.name} className="flex justify-between items-center">
-                    <span>{part.name}</span>
-                    <span className="font-medium">{part.count} times</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-4">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  className="rounded-md border"
+                />
+                <div>
+                  <p className="text-sm text-muted-foreground">Selected Date Revenue</p>
+                  <p className="text-2xl font-bold">₹{calculateDailyRevenue(analyticsData.selectedDateServices)}</p>
+                  {analyticsData.selectedDateServices.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm font-medium mb-2">Vehicles Serviced:</p>
+                      <ul className="space-y-2">
+                        {analyticsData.selectedDateServices.map((service) => (
+                          <li key={service.id} className="text-sm">
+                            {service.vehicleNumber} - ₹{service.totalCost}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
