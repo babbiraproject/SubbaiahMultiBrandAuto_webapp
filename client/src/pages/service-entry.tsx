@@ -104,6 +104,10 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-4">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-primary">Subbaiah Multi Brand Auto</h1>
+        </div>
+
         <Button
           variant="ghost"
           onClick={() => setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`)}

@@ -36,14 +36,18 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-8">
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
               <Wrench className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Auto Service Manager</h1>
-            <p className="text-muted-foreground">
-              Track and manage vehicle service records efficiently
-            </p>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-primary">
+                Subbaiah Multi Brand Auto
+              </h1>
+              <p className="text-xl text-muted-foreground mt-2">
+                Your Trusted Auto Service Partner
+              </p>
+            </div>
           </div>
 
           <Card className="border-2">

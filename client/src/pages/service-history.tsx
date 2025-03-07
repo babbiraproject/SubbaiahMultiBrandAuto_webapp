@@ -31,7 +31,7 @@ export default function ServiceHistory({ params }: { params: { number: string } 
           const data = snapshot.val();
           const servicesArray = Object.values(data) as ServiceEntry[];
           // Sort by date in descending order
-          setServices(servicesArray.sort((a, b) => 
+          setServices(servicesArray.sort((a, b) =>
             new Date(b.date).getTime() - new Date(a.date).getTime()
           ));
         } else {
@@ -114,6 +114,10 @@ export default function ServiceHistory({ params }: { params: { number: string } 
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-4">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-primary">Subbaiah Multi Brand Auto</h1>
+        </div>
+
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
@@ -161,7 +165,7 @@ export default function ServiceHistory({ params }: { params: { number: string } 
                             <div className="flex items-center justify-between mb-4">
                               <div className="flex items-center text-sm text-muted-foreground">
                                 <CalendarDays className="w-4 h-4 mr-2" />
-                                {new Date(service.date).toLocaleDateString('default', { 
+                                {new Date(service.date).toLocaleDateString('default', {
                                   weekday: 'long',
                                   day: 'numeric',
                                   month: 'long'
