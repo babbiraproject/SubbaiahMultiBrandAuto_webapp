@@ -42,13 +42,13 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
       date: new Date().toISOString().split('T')[0],
       kilometerReading: 0,
       spareParts: [],
-      serviceCharge: 0,
+      serviceItems: [],
       totalCost: 0
     }
   });
 
   const spareParts = form.watch("spareParts");
-  const serviceCharge = form.watch("serviceCharge") || 0;
+  const serviceItems = form.watch("serviceItems");
 
   const addSparePart = () => {
     const currentParts = form.getValues("spareParts");
@@ -60,9 +60,20 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
     form.setValue("spareParts", currentParts.filter((_, i) => i !== index));
   };
 
+  const addServiceItem = () => {
+    const currentItems = form.getValues("serviceItems");
+    form.setValue("serviceItems", [...currentItems, { description: "", cost: 0 }]);
+  };
+
+  const removeServiceItem = (index: number) => {
+    const currentItems = form.getValues("serviceItems");
+    form.setValue("serviceItems", currentItems.filter((_, i) => i !== index));
+  };
+
   const calculateTotal = () => {
     const partsTotal = spareParts.reduce((sum, part) => sum + (Number(part.cost) || 0), 0);
-    return partsTotal + (Number(serviceCharge) || 0);
+    const servicesTotal = serviceItems.reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
+    return partsTotal + servicesTotal;
   };
 
   const handleBack = () => {
@@ -88,7 +99,10 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
           name: part.name.trim(),
           cost: Number(part.cost) || 0
         })),
-        serviceCharge: Number(data.serviceCharge) || 0,
+        serviceItems: data.serviceItems.map(item => ({
+          description: item.description.trim(),
+          cost: Number(item.cost) || 0
+        })),
         totalCost: calculateTotal()
       };
 
@@ -247,30 +261,63 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
                   ))}
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="serviceCharge"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Service Charge</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="1"
-                          placeholder="Enter service charge"
-                          {...field}
-                          value={field.value || ""}
-                          onChange={e => {
-                            const value = e.target.value;
-                            field.onChange(value === "" ? "" : Number(value));
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium">Service Items</h3>
+                    <Button type="button" variant="outline" onClick={addServiceItem}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Service
+                    </Button>
+                  </div>
+
+                  {serviceItems.map((_, index) => (
+                    <div key={index} className="flex gap-4">
+                      <FormField
+                        control={form.control}
+                        name={`serviceItems.${index}.description`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormControl>
+                              <Input placeholder="Service description" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`serviceItems.${index}.cost`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="1"
+                                placeholder="Cost"
+                                {...field}
+                                value={field.value || ""}
+                                onChange={e => {
+                                  const value = e.target.value;
+                                  field.onChange(value === "" ? "" : Number(value));
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => removeServiceItem(index)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
 
                 <div className="pt-4 border-t">
                   <p className="text-lg font-bold">

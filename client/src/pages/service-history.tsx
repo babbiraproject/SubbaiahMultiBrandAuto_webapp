@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, ArrowLeft, Plus, IndianRupee, Settings, Wrench, CarFront } from "lucide-react";
+import { CalendarDays, ArrowLeft, Plus, IndianRupee, Settings, Wrench, CarFront, Cog } from "lucide-react";
 
 type GroupedServices = {
   [key: string]: ServiceEntry[];
@@ -198,11 +198,22 @@ export default function ServiceHistory({ params }: { params: { number: string } 
                                 </ul>
                               </div>
 
+                              <div>
+                                <h3 className="font-medium flex items-center gap-2">
+                                  <Cog className="w-4 h-4" />
+                                  Service Items
+                                </h3>
+                                <ul className="mt-2 space-y-1">
+                                  {service.serviceItems.map((item, idx) => (
+                                    <li key={idx} className="flex justify-between text-sm">
+                                      <span>{item.description}</span>
+                                      <span className="font-medium">₹{item.cost}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
                               <div className="pt-2 border-t">
-                                <div className="flex justify-between text-sm">
-                                  <span>Service Charge</span>
-                                  <span>₹{service.serviceCharge}</span>
-                                </div>
                                 <div className="flex justify-between font-bold mt-1">
                                   <span>Total</span>
                                   <span>₹{service.totalCost}</span>
