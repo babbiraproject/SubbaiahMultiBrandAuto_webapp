@@ -49,6 +49,10 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
     return partsTotal + (Number(serviceCharge) || 0);
   };
 
+  const handleBack = () => {
+    setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`);
+  };
+
   async function onSubmit(data: ServiceEntry) {
     setLoading(true);
     try {
@@ -83,7 +87,6 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
       console.error("Error code:", error.code);
       console.error("Error message:", error.message);
 
-      // Show specific error message based on error code
       let errorMessage = "Failed to save service record. ";
       if (error.code === "PERMISSION_DENIED") {
         errorMessage += "Please check if you have write permissions.";
@@ -110,7 +113,8 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
 
         <Button
           variant="ghost"
-          onClick={() => setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`)}
+          onClick={handleBack}
+          className="mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
