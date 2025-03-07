@@ -8,7 +8,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { vehicleNumberSchema } from "@shared/schema";
-import { Wrench } from "lucide-react";
+import { Wrench, CarFront, ClipboardCheck, History } from "lucide-react";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -33,47 +33,84 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-2 text-center">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-            <Wrench className="w-6 h-6 text-primary" />
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <div className="text-center space-y-2">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+              <Wrench className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">Auto Service Manager</h1>
+            <p className="text-muted-foreground">
+              Track and manage vehicle service records efficiently
+            </p>
           </div>
-          <h1 className="text-2xl font-bold">Service Records</h1>
-          <p className="text-sm text-muted-foreground">
-            Enter a vehicle number to view or create service records
-          </p>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vehicle Number</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter vehicle number" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={loading}
-              >
-                {loading ? "Loading..." : "Search Records"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+
+          <Card className="border-2">
+            <CardContent className="pt-6">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Number</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter vehicle number" 
+                            {...field} 
+                            className="text-lg"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    size="lg"
+                    disabled={loading}
+                  >
+                    {loading ? "Searching..." : "Search Records"}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <CarFront className="w-8 h-8 mx-auto text-primary mb-2" />
+                <h3 className="font-semibold">Vehicle Records</h3>
+                <p className="text-sm text-muted-foreground">
+                  Track service history for any vehicle
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <ClipboardCheck className="w-8 h-8 mx-auto text-primary mb-2" />
+                <h3 className="font-semibold">Service Details</h3>
+                <p className="text-sm text-muted-foreground">
+                  Record parts and labor costs
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <History className="w-8 h-8 mx-auto text-primary mb-2" />
+                <h3 className="font-semibold">Service History</h3>
+                <p className="text-sm text-muted-foreground">
+                  View complete service timeline
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
