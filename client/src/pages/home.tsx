@@ -8,7 +8,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { vehicleNumberSchema } from "@shared/schema";
-import { Wrench, CarFront, ClipboardCheck, History } from "lucide-react";
+import { Wrench, CarFront, ClipboardCheck, History, BarChart } from "lucide-react";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -83,6 +83,14 @@ export default function Home() {
                     disabled={loading}
                   >
                     {loading ? "Searching..." : "Search Records"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setLocation("/analytics")}
+                  >
+                    <BarChart className="w-4 h-4 mr-2" />
+                    View Analytics
                   </Button>
                 </form>
               </Form>
