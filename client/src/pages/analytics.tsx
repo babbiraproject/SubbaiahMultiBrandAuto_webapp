@@ -18,7 +18,12 @@ import {
 } from "recharts";
 
 type AnalyticsData = {
-  monthlyRevenue: { name: string; amount: number }[];
+  monthlyRevenue: { 
+    name: string; 
+    amount: number;
+    serviceCost: number;
+    spareCost: number;
+  }[];
   commonParts: { name: string; count: number }[];
   averageServiceCost: number;
   totalServices: number;
@@ -80,8 +85,15 @@ export default function Analytics() {
             const existing = acc.find((item: any) => item.name === month);
             if (existing) {
               existing.amount += service.totalCost;
+              existing.serviceCost += (service.totalServiceCost || 0);
+              existing.spareCost += (service.totalSpareCost || 0);
             } else {
-              acc.push({ name: month, amount: service.totalCost });
+              acc.push({ 
+                name: month, 
+                amount: service.totalCost,
+                serviceCost: (service.totalServiceCost || 0),
+                spareCost: (service.totalSpareCost || 0)
+              });
             }
             return acc;
           }, []).sort((a: any, b: any) => {
@@ -128,6 +140,14 @@ export default function Analytics() {
     return services.reduce((sum, service) => sum + service.totalCost, 0);
   };
 
+  const calculateDailyServiceCost = (services: ServiceEntry[]) => {
+    return services.reduce((sum, service) => sum + (service.totalServiceCost || 0), 0);
+  };
+
+  const calculateDailySpareCost = (services: ServiceEntry[]) => {
+    return services.reduce((sum, service) => sum + (service.totalSpareCost || 0), 0);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -169,13 +189,30 @@ export default function Analytics() {
                   <p className="text-sm text-muted-foreground">Today's Revenue</p>
                   <p className="text-2xl font-bold">₹{calculateDailyRevenue(analyticsData.todayServices)}</p>
                 </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Service Cost</p>
+                    <p className="text-lg font-semibold">₹{calculateDailyServiceCost(analyticsData.todayServices)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Spare Parts Cost</p>
+                    <p className="text-lg font-semibold">₹{calculateDailySpareCost(analyticsData.todayServices)}</p>
+                  </div>
+                </div>
                 {analyticsData.todayServices.length > 0 && (
                   <div>
                     <p className="text-sm font-medium mb-2">Today's Vehicles:</p>
                     <ul className="space-y-2">
                       {analyticsData.todayServices.map((service) => (
                         <li key={service.id} className="text-sm">
-                          {service.vehicleNumber} - ₹{service.totalCost}
+                          <div className="flex justify-between items-center">
+                            <span>{service.vehicleNumber}</span>
+                            <span className="font-medium">₹{service.totalCost}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1 flex justify-between">
+                            <span>Service: ₹{service.totalServiceCost || 0}</span>
+                            <span>Parts: ₹{service.totalSpareCost || 0}</span>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -200,13 +237,30 @@ export default function Analytics() {
                 <div>
                   <p className="text-sm text-muted-foreground">Selected Date Revenue</p>
                   <p className="text-2xl font-bold">₹{calculateDailyRevenue(analyticsData.selectedDateServices)}</p>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Service Cost</p>
+                      <p className="text-lg font-semibold">₹{calculateDailyServiceCost(analyticsData.selectedDateServices)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Spare Parts Cost</p>
+                      <p className="text-lg font-semibold">₹{calculateDailySpareCost(analyticsData.selectedDateServices)}</p>
+                    </div>
+                  </div>
                   {analyticsData.selectedDateServices.length > 0 && (
                     <div className="mt-2">
                       <p className="text-sm font-medium mb-2">Vehicles Serviced:</p>
                       <ul className="space-y-2">
                         {analyticsData.selectedDateServices.map((service) => (
                           <li key={service.id} className="text-sm">
-                            {service.vehicleNumber} - ₹{service.totalCost}
+                            <div className="flex justify-between items-center">
+                              <span>{service.vehicleNumber}</span>
+                              <span className="font-medium">₹{service.totalCost}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1 flex justify-between">
+                              <span>Service: ₹{service.totalServiceCost || 0}</span>
+                              <span>Parts: ₹{service.totalSpareCost || 0}</span>
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -230,7 +284,9 @@ export default function Analytics() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="amount" fill="hsl(212, 100%, 39%)" name="Revenue" />
+                  <Bar dataKey="amount" fill="hsl(212, 100%, 39%)" name="Total Revenue" />
+                  <Bar dataKey="serviceCost" fill="hsl(142, 76%, 36%)" name="Service Cost" />
+                  <Bar dataKey="spareCost" fill="hsl(346, 84%, 61%)" name="Spare Parts Cost" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
