@@ -43,12 +43,33 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
       kilometerReading: 0,
       spareParts: [],
       serviceItems: [],
+      totalSpareCost: 0,
+      totalServiceCost: 0,
       totalCost: 0
     }
   });
 
   const spareParts = form.watch("spareParts");
   const serviceItems = form.watch("serviceItems");
+
+  const calculateTotals = () => {
+    const currentSpareParts = form.getValues("spareParts");
+    const currentServiceItems = form.getValues("serviceItems");
+    
+    const totalSpareCost = currentSpareParts.reduce((sum, part) => sum + (Number(part.cost) || 0), 0);
+    const totalServiceCost = currentServiceItems.reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
+    const totalCost = totalSpareCost + totalServiceCost;
+    
+    return { totalSpareCost, totalServiceCost, totalCost };
+  };
+
+  // Update totals whenever spareParts or serviceItems change
+  useEffect(() => {
+    const totals = calculateTotals();
+    form.setValue("totalSpareCost", totals.totalSpareCost);
+    form.setValue("totalServiceCost", totals.totalServiceCost);
+    form.setValue("totalCost", totals.totalCost);
+  }, [spareParts, serviceItems]);
 
   const addSparePart = () => {
     const currentParts = form.getValues("spareParts");
@@ -70,12 +91,6 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
     form.setValue("serviceItems", currentItems.filter((_, i) => i !== index));
   };
 
-  const calculateTotal = () => {
-    const partsTotal = spareParts.reduce((sum, part) => sum + (Number(part.cost) || 0), 0);
-    const servicesTotal = serviceItems.reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
-    return partsTotal + servicesTotal;
-  };
-
   const handleBack = () => {
     if (isNewVehicle) {
       setLocation("/"); // Go to home page for new vehicles
@@ -90,6 +105,9 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
       console.log("Attempting to save service record:", { vehicleNumber, data });
       const servicesRef = ref(database, `services/${vehicleNumber}`);
 
+      // Calculate final totals
+      const totals = calculateTotals();
+
       // Format the data
       const newData = {
         ...data,
@@ -103,7 +121,9 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
           description: item.description.trim(),
           cost: Number(item.cost) || 0
         })),
-        totalCost: calculateTotal()
+        totalSpareCost: totals.totalSpareCost,
+        totalServiceCost: totals.totalServiceCost,
+        totalCost: totals.totalCost
       };
 
       // Push to Firebase
@@ -242,6 +262,11 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
                                 onChange={e => {
                                   const value = e.target.value;
                                   field.onChange(value === "" ? "" : Number(value));
+                                  // Recalculate totals immediately
+                                  const totals = calculateTotals();
+                                  form.setValue("totalSpareCost", totals.totalSpareCost);
+                                  form.setValue("totalServiceCost", totals.totalServiceCost);
+                                  form.setValue("totalCost", totals.totalCost);
                                 }}
                               />
                             </FormControl>
@@ -300,6 +325,11 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
                                 onChange={e => {
                                   const value = e.target.value;
                                   field.onChange(value === "" ? "" : Number(value));
+                                  // Recalculate totals immediately
+                                  const totals = calculateTotals();
+                                  form.setValue("totalSpareCost", totals.totalSpareCost);
+                                  form.setValue("totalServiceCost", totals.totalServiceCost);
+                                  form.setValue("totalCost", totals.totalCost);
                                 }}
                               />
                             </FormControl>
@@ -320,9 +350,20 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
                 </div>
 
                 <div className="pt-4 border-t">
-                  <p className="text-lg font-bold">
-                    Total Cost: ₹{calculateTotal()}
-                  </p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Spare Parts Total</span>
+                      <span>₹{form.watch("totalSpareCost")}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Service Items Total</span>
+                      <span>₹{form.watch("totalServiceCost")}</span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>Total Cost</span>
+                      <span>₹{form.watch("totalCost")}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>

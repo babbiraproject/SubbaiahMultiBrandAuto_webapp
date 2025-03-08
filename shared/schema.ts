@@ -19,6 +19,8 @@ export const serviceEntrySchema = z.object({
     description: z.string().min(1, "Service description is required"),
     cost: z.number().min(0, "Cost must be positive")
   })),
+  totalSpareCost: z.number(),
+  totalServiceCost: z.number(),
   totalCost: z.number()
 });
 
