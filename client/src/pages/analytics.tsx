@@ -8,6 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { ArrowLeft } from "lucide-react";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   BarChart,
   Bar,
   XAxis,
@@ -23,6 +38,8 @@ type AnalyticsData = {
     amount: number;
     serviceCost: number;
     spareCost: number;
+    month: string;
+    year: string;
   }[];
   commonParts: { name: string; count: number }[];
   averageServiceCost: number;
@@ -35,6 +52,8 @@ export default function Analytics() {
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     monthlyRevenue: [],
     commonParts: [],
@@ -53,13 +72,25 @@ export default function Analytics() {
         if (snapshot.exists()) {
           const allServices: ServiceEntry[] = [];
           const data = snapshot.val();
+          const years = new Set<string>();
 
           // Flatten the data structure
           Object.values(data).forEach((vehicleServices: any) => {
             Object.values(vehicleServices).forEach((service: ServiceEntry) => {
               allServices.push(service);
+              const year = new Date(service.date).getFullYear().toString();
+              years.add(year);
             });
           });
+
+          // Set available years
+          const yearsArray = Array.from(years).sort((a, b) => b.localeCompare(a));
+          setAvailableYears(yearsArray);
+          
+          // If no years are selected yet and we have years, select the most recent
+          if (yearsArray.length > 0 && !selectedYear) {
+            setSelectedYear(yearsArray[0]);
+          }
 
           // Get today's services
           const today = new Date();
@@ -79,17 +110,23 @@ export default function Analytics() {
             return serviceDate.getTime() === selectedDateStart.getTime();
           });
 
-          // Calculate monthly revenue
+          // Calculate monthly revenue with month and year separated
           const monthlyRevenue = allServices.reduce((acc: any, service) => {
-            const month = new Date(service.date).toLocaleString('default', { month: 'long', year: 'numeric' });
-            const existing = acc.find((item: any) => item.name === month);
+            const date = new Date(service.date);
+            const month = date.toLocaleString('default', { month: 'long' });
+            const year = date.getFullYear().toString();
+            const monthYear = `${month} ${year}`;
+            
+            const existing = acc.find((item: any) => item.name === monthYear);
             if (existing) {
               existing.amount += service.totalCost;
               existing.serviceCost += (service.totalServiceCost || 0);
               existing.spareCost += (service.totalSpareCost || 0);
             } else {
               acc.push({ 
-                name: month, 
+                name: monthYear, 
+                month,
+                year,
                 amount: service.totalCost,
                 serviceCost: (service.totalServiceCost || 0),
                 spareCost: (service.totalSpareCost || 0)
@@ -134,7 +171,7 @@ export default function Analytics() {
     }
 
     fetchAnalytics();
-  }, [selectedDate]);
+  }, [selectedDate, selectedYear]);
 
   const calculateDailyRevenue = (services: ServiceEntry[]) => {
     return services.reduce((sum, service) => sum + service.totalCost, 0);
@@ -146,6 +183,49 @@ export default function Analytics() {
 
   const calculateDailySpareCost = (services: ServiceEntry[]) => {
     return services.reduce((sum, service) => sum + (service.totalSpareCost || 0), 0);
+  };
+
+  // Get monthly data for the selected year
+  const getMonthlyDataForYear = () => {
+    const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    
+    // Create a template with all months
+    const monthlyData = months.map(month => ({
+      month,
+      amount: 0,
+      serviceCost: 0,
+      spareCost: 0
+    }));
+    
+    // Fill in data from analytics
+    analyticsData.monthlyRevenue.forEach(item => {
+      if (item.year === selectedYear) {
+        const monthIndex = months.indexOf(item.month);
+        if (monthIndex !== -1) {
+          monthlyData[monthIndex] = {
+            month: item.month,
+            amount: item.amount,
+            serviceCost: item.serviceCost,
+            spareCost: item.spareCost
+          };
+        }
+      }
+    });
+    
+    return monthlyData;
+  };
+
+  // Calculate yearly totals
+  const calculateYearlyTotals = () => {
+    const monthlyData = getMonthlyDataForYear();
+    return {
+      totalAmount: monthlyData.reduce((sum, item) => sum + item.amount, 0),
+      totalServiceCost: monthlyData.reduce((sum, item) => sum + item.serviceCost, 0),
+      totalSpareCost: monthlyData.reduce((sum, item) => sum + item.spareCost, 0)
+    };
   };
 
   if (loading) {
@@ -289,6 +369,58 @@ export default function Analytics() {
                   <Bar dataKey="spareCost" fill="hsl(346, 84%, 61%)" name="Spare Parts Cost" />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+
+            <div className="mt-8">
+              <h3 className="text-lg font-medium mb-4">Monthly Revenue Table</h3>
+              
+              <div className="mb-4">
+                <Select
+                  value={selectedYear}
+                  onValueChange={(value) => setSelectedYear(value)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableYears.map(year => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Month</TableHead>
+                      <TableHead className="text-right">Service Cost</TableHead>
+                      <TableHead className="text-right">Spare Parts Cost</TableHead>
+                      <TableHead className="text-right">Total Revenue</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getMonthlyDataForYear().map((item) => (
+                      <TableRow key={item.month}>
+                        <TableCell className="font-medium">{item.month}</TableCell>
+                        <TableCell className="text-right">₹{item.serviceCost.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">₹{item.spareCost.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">₹{item.amount.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                    {/* Yearly Total Row */}
+                    <TableRow className="bg-muted/50 font-bold">
+                      <TableCell>Yearly Total</TableCell>
+                      <TableCell className="text-right">₹{calculateYearlyTotals().totalServiceCost.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">₹{calculateYearlyTotals().totalSpareCost.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">₹{calculateYearlyTotals().totalAmount.toLocaleString()}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </CardContent>
         </Card>
