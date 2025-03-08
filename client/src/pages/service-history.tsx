@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, ArrowLeft, Plus, IndianRupee, Settings, Wrench, CarFront, Cog } from "lucide-react";
+import { CalendarDays, ArrowLeft, Plus, IndianRupee, Settings, Wrench, CarFront, Cog, Edit } from "lucide-react";
 
 type GroupedServices = {
   [key: string]: ServiceEntry[];
@@ -81,6 +81,22 @@ export default function ServiceHistory({ params }: { params: { number: string } 
 
   const calculateTotalExpense = () => {
     return services.reduce((total, service) => total + service.totalCost, 0);
+  };
+
+  // Function to check if a date is today
+  const isToday = (dateString: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const serviceDate = new Date(dateString);
+    serviceDate.setHours(0, 0, 0, 0);
+    
+    return serviceDate.getTime() === today.getTime();
+  };
+
+  // Function to handle edit button click
+  const handleEdit = (serviceId: string) => {
+    setLocation(`/service-entry/${encodeURIComponent(vehicleNumber)}?edit=${serviceId}`);
   };
 
   if (loading) {
@@ -171,9 +187,22 @@ export default function ServiceHistory({ params }: { params: { number: string } 
                                   month: 'long'
                                 })}
                               </div>
-                              <div className="flex items-center text-sm font-medium">
-                                <Wrench className="w-4 h-4 mr-2" />
-                                {service.spareParts.length} parts replaced
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center text-sm font-medium">
+                                  <Wrench className="w-4 h-4 mr-2" />
+                                  {(service.spareParts || []).length} parts replaced
+                                </div>
+                                {isToday(service.date) && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => handleEdit(service.id)}
+                                    className="h-8 px-2"
+                                  >
+                                    <Edit className="w-3 h-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                )}
                               </div>
                             </div>
 

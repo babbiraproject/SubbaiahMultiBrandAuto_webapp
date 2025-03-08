@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ref, push, get } from "firebase/database";
+import { ref, push, get, set } from "firebase/database";
 import { database } from "@/lib/firebase";
 import { ServiceEntry, serviceEntrySchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -13,11 +13,23 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
 export default function ServiceEntryPage({ params }: { params: { number: string } }) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isNewVehicle, setIsNewVehicle] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [serviceId, setServiceId] = useState<string | null>(null);
   const vehicleNumber = decodeURIComponent(params.number).toUpperCase();
+
+  // Parse URL for edit parameter
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const editId = url.searchParams.get('edit');
+    if (editId) {
+      setIsEditMode(true);
+      setServiceId(editId);
+    }
+  }, []);
 
   // Check if vehicle has any existing records
   useEffect(() => {
@@ -48,6 +60,69 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
       totalCost: 0
     }
   });
+
+  // Load service data if in edit mode
+  useEffect(() => {
+    async function loadServiceData() {
+      if (isEditMode && serviceId) {
+        try {
+          setLoading(true);
+          const servicesRef = ref(database, `services/${vehicleNumber}`);
+          const snapshot = await get(servicesRef);
+          
+          if (snapshot.exists()) {
+            const data = snapshot.val();
+            // Find the service with matching ID
+            const serviceEntries = Object.entries(data);
+            for (const [key, value] of serviceEntries) {
+              const service = value as ServiceEntry;
+              if (service.id === serviceId) {
+                // Check if service date is today
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const serviceDate = new Date(service.date);
+                serviceDate.setHours(0, 0, 0, 0);
+                
+                if (serviceDate.getTime() !== today.getTime()) {
+                  toast({
+                    variant: "destructive",
+                    title: "Cannot Edit",
+                    description: "You can only edit service entries from today."
+                  });
+                  setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`);
+                  return;
+                }
+                
+                // Format date for form
+                const formattedDate = new Date(service.date).toISOString().split('T')[0];
+                
+                // Reset form with service data
+                form.reset({
+                  ...service,
+                  date: formattedDate
+                });
+                
+                // Store the Firebase key for this service
+                setServiceId(key);
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error loading service data:", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load service data for editing."
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+    
+    loadServiceData();
+  }, [isEditMode, serviceId, vehicleNumber, form, setLocation, toast]);
 
   const spareParts = form.watch("spareParts");
   const serviceItems = form.watch("serviceItems");
@@ -102,16 +177,14 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
   async function onSubmit(data: ServiceEntry) {
     setLoading(true);
     try {
-      console.log("Attempting to save service record:", { vehicleNumber, data });
-      const servicesRef = ref(database, `services/${vehicleNumber}`);
-
+      console.log("Attempting to save service record:", { vehicleNumber, data, isEditMode });
+      
       // Calculate final totals
       const totals = calculateTotals();
-
+      
       // Format the data
-      const newData = {
+      const formattedData = {
         ...data,
-        id: Date.now().toString(),
         date: new Date(data.date).toISOString(),
         spareParts: data.spareParts.map(part => ({
           name: part.name.trim(),
@@ -125,15 +198,28 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
         totalServiceCost: totals.totalServiceCost,
         totalCost: totals.totalCost
       };
-
-      // Push to Firebase
-      await push(servicesRef, newData);
-      console.log("Service record saved successfully");
-
-      toast({
-        title: "Success",
-        description: "Service record saved successfully"
-      });
+      
+      if (isEditMode && serviceId) {
+        // Update existing service
+        const serviceRef = ref(database, `services/${vehicleNumber}/${serviceId}`);
+        await set(serviceRef, formattedData);
+        toast({
+          title: "Success",
+          description: "Service record updated successfully"
+        });
+      } else {
+        // Create new service
+        const servicesRef = ref(database, `services/${vehicleNumber}`);
+        const newData = {
+          ...formattedData,
+          id: Date.now().toString(),
+        };
+        await push(servicesRef, newData);
+        toast({
+          title: "Success",
+          description: "Service record saved successfully"
+        });
+      }
 
       setLocation(`/service-history/${encodeURIComponent(vehicleNumber)}`);
     } catch (error: any) {
@@ -141,7 +227,10 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
       console.error("Error code:", error.code);
       console.error("Error message:", error.message);
 
-      let errorMessage = "Failed to save service record. ";
+      let errorMessage = isEditMode 
+        ? "Failed to update service record. " 
+        : "Failed to save service record. ";
+        
       if (error.code === "PERMISSION_DENIED") {
         errorMessage += "Please check if you have write permissions.";
       } else {
@@ -176,7 +265,7 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
 
         <Card>
           <CardHeader>
-            <h1 className="text-2xl font-bold">New Service Entry</h1>
+            <h1 className="text-2xl font-bold">{isEditMode ? "Edit Service Entry" : "New Service Entry"}</h1>
             <p className="text-sm text-muted-foreground">
               Vehicle Number: {vehicleNumber}
             </p>
@@ -367,7 +456,7 @@ export default function ServiceEntryPage({ params }: { params: { number: string 
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Saving..." : "Save Service Record"}
+                  {loading ? "Saving..." : isEditMode ? "Update Service Record" : "Save Service Record"}
                 </Button>
               </form>
             </Form>
